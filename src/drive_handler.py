@@ -6,6 +6,7 @@ from googleapiclient.http import MediaIoBaseDownload
 from googleapiclient.errors import HttpError
 import asyncio
 from logger import get_logger
+from vector_db import check_if_updated
 
 logger = get_logger()
 
@@ -45,34 +46,55 @@ async def download_file(file_id, mime_type):
         logger.error(f"An error occurred while retrieving content: {error}")
         return None
 
-async def get_all_files_content():
+async def get_and_process_files_content(process_file_callback, max_concurrent_downloads=5):
     logger.info("Getting Files from Google Drive")
-    results = service.files().list(pageSize=1000, fields="nextPageToken, files(id, name, mimeType)").execute()
+    results = service.files().list(
+        pageSize=1000,
+        fields="nextPageToken, files(id, name, mimeType, createdTime, modifiedTime, webViewLink, permissions)"
+    ).execute()
+
     items = results.get('files', [])
     nextPageToken = results.get('nextPageToken', None)
 
     while nextPageToken:
         additional_results = service.files().list(
             pageSize=1000,
-            fields="nextPageToken, files(id, name, mimeType)",
+            fields="nextPageToken, files(id, name, mimeType, createdTime, modifiedTime, webViewLink, permissions)",
             pageToken=nextPageToken
         ).execute()
         items.extend(additional_results.get('files', []))
-        
         logger.info(f"Found {len(items)} items")
-        nextPageToken = None # additional_results.get('nextPageToken', None)
+        nextPageToken = additional_results.get('nextPageToken', None)
+
+    semaphore = asyncio.Semaphore(max_concurrent_downloads)  # Limit concurrent downloads
 
     downloaded = 0
-    async def download_and_return(item):
-        nonlocal downloaded
-        content = await download_file(item['id'], item['mimeType'])
-        
-        downloaded += 1
-        logger.info(f'Downloaded {downloaded} of {len(items)} files')
-        return content
+    skipped = 0
+    async def download_and_process(item):
+        nonlocal downloaded, skipped
+        updated = await check_if_updated(item['id'], item['modifiedTime'])
+        if not updated:
+            skipped += 1
+            logger.info(f"Downloaded {downloaded}, skipped {skipped} of {len(items)} items")
+            return
+        async with semaphore:
+            content = await download_file(item['id'], item['mimeType'])
+            if content == None:
+                skipped += 1
+                logger.info(f"Downloaded {downloaded}, skipped {skipped} of {len(items)} items")
+                return
+            
+            downloaded += 1
+            logger.info(f"Downloaded {downloaded}, skipped {skipped} of {len(items)} items")
+            
+            access_list = []
+            for user in item['permissions']:
+                try:
+                    access_list.append(user['emailAddress'])
+                except: 
+                    pass
+            if content:
+                await process_file_callback(content, item['id'], item['modifiedTime'], access_list, item['name'], item['webViewLink'], item['mimeType'])
 
-    download_tasks = [download_and_return(item) for item in items]
-    for download_task in asyncio.as_completed(download_tasks):
-        content = await download_task
-        if content:
-            yield content
+    download_tasks = [download_and_process(item) for item in items]
+    await asyncio.gather(*download_tasks)

@@ -49,7 +49,7 @@ def get_all_files_content():
     """Get the text content of all files from Google Drive"""
     # Call the Drive v3 API
     print("Getting Files from Google Drive")
-    results = service.files().list(pageSize=1000, fields="nextPageToken, files(id, name, mimeType)").execute()
+    results = service.files().list(pageSize=1000, fields="nextPageToken, files(id, name, mimeType, permissions)").execute()
     items = results.get('files', [])
     nextPageToken = results.get('nextPageToken', None)
 
@@ -63,7 +63,7 @@ def get_all_files_content():
         print("Found " + str(len(items)) + " items")
         nextPageToken = additional_results.get('nextPageToken', None)
     print("Now Downloading Content")
-    
+
     # Retrieve and print content of each file
     for item in items:
         file_id = item['id']

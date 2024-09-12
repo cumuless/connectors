@@ -11,8 +11,7 @@ def embed_text_chunks(content, chunk_size=500):
 
 async def embed_text(chunk):
     # Assuming you have a method to get AWS Bedrock client
-    input_payload = json.dumps({"inputText": chunk, "dimensions": 256})
-        
+    input_payload = json.dumps({"inputText": chunk, "dimensions": 1024})
     try:
         response = client.invoke_model(
             modelId='amazon.titan-embed-text-v2:0',

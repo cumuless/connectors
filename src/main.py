@@ -1,19 +1,19 @@
 import asyncio
 import os
-from drive_handler import get_all_files_content
+from drive_handler import get_and_process_files_content
 from embedder import embed_text_chunks, embed_text
 from vector_db import store_embedding
 from logger import setup_logging, get_logger
 
 def load_env():
     from dotenv import load_dotenv
-    load_dotenv(os.path.join(os.path.dirname(__file__), '..', 'config', 'config.env'))
+    load_dotenv()
 
-async def process_file_content(content, semaphore):
+async def process_file_content(content, semaphore, docId, lastUpdated, access, title, webviewUrl, mime_type):
     async with semaphore:
         chunks = embed_text_chunks(content)
         embeddings = await asyncio.gather(*[embed_text(chunk) for chunk in chunks])
-        await asyncio.gather(*[store_embedding(embedding) for embedding in embeddings])
+        await asyncio.gather(*[store_embedding(docId, embedding, content, lastUpdated, access, title, webviewUrl, mime_type) for embedding in embeddings])
 
 async def main():
     setup_logging()  # Initialize logging
@@ -22,14 +22,12 @@ async def main():
 
     semaphore = asyncio.Semaphore(10)  # Limit to 10 concurrent tasks
 
-    # Step 1: Get content from Google Drive
-    tasks = []
-    async for content in get_all_files_content():
-        logger.info("Downloaded a file")
-        task = asyncio.create_task(process_file_content(content, semaphore))
-        tasks.append(task)
+    async def process_and_store_content(content, docId, lastUpdated, access, title, webviewUrl, mime_type):
+        await process_file_content(content, semaphore, docId, lastUpdated, access, title, webviewUrl, mime_type)
 
-    await asyncio.gather(*tasks)
+    # Step 1: Get and process content from Google Drive
+    await get_and_process_files_content(process_and_store_content)
+
     logger.info("Finished processing all files")
 
 if __name__ == "__main__":
