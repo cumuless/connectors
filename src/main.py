@@ -13,14 +13,17 @@ async def process_file_content(content, semaphore, docId, lastUpdated, access, t
     async with semaphore:
         chunks = embed_text_chunks(content)
         embeddings = await asyncio.gather(*[embed_text(chunk) for chunk in chunks])
-        await asyncio.gather(*[store_embedding(docId, embedding, content, lastUpdated, access, title, webviewUrl, mime_type) for embedding in embeddings])
+        await asyncio.gather(
+            *[store_embedding(docId, embedding, chunk, lastUpdated, access, title, webviewUrl, mime_type)
+              for chunk, embedding in zip(chunks, embeddings)]
+        )
 
 async def main():
     setup_logging()  # Initialize logging
     logger = get_logger()
     logger.info("Starting Connectors")
 
-    semaphore = asyncio.Semaphore(10)  # Limit to 10 concurrent tasks
+    semaphore = asyncio.Semaphore(15)  # Limit to 10 concurrent tasks
 
     async def process_and_store_content(content, docId, lastUpdated, access, title, webviewUrl, mime_type):
         await process_file_content(content, semaphore, docId, lastUpdated, access, title, webviewUrl, mime_type)

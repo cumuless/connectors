@@ -58,15 +58,13 @@ async def store_embedding(docId, embedding, content, lastUpdated, access, title,
     # Get the response
     res = conn.getresponse()
     data = res.read().decode("utf-8")
+    data = json.loads(data)
 
     # Close connection
     conn.close()
 
-    logger.info("Storing Doc in VectorDB")
-    # Handle the response - THIS DOESN'T WORK RN
-    if res.status == 200:
-        logger.info('Stored embedding in vector database successfully.')
-    else:
+    # Handle the response
+    if data['code'] != 0:
         logger.error(f'Failed to store embedding: {data}')
 
 async def check_if_updated(docId, lastUpdated):
