@@ -5,7 +5,7 @@ import json
 logger = get_logger()
 client = boto3.client('bedrock-runtime', region_name='us-east-1')
 
-def embed_text_chunks(content, chunk_size=500):
+def embed_text_chunks(content, chunk_size=200):
     words = content.split()
     return [' '.join(words[i:i + chunk_size]) for i in range(0, len(words), chunk_size)]
 
@@ -22,6 +22,7 @@ async def embed_text(chunk):
         if response['ResponseMetadata']['HTTPStatusCode'] == 200:
             response_body = response['body'].read().decode('utf-8')
             response_json = json.loads(response_body)
+            logger.info(f'Embedded Text!')
             return response_json.get('embedding')
         else:
             logger.info(f"Failed to get embedding: {response}")

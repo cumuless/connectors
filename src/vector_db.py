@@ -21,7 +21,7 @@ async def store_embedding(docId, embedding, content, lastUpdated, access, title,
     """
     Stores the embedding for the given docId in the vector database.
     """
-    delete_all_entried_with_docId(docId)
+    await delete_all_entried_with_docId(docId)
 
     # Determine contentType based on mime_type
     contentType = 0
@@ -38,7 +38,7 @@ async def store_embedding(docId, embedding, content, lastUpdated, access, title,
 
     # Prepare payload
     payload = json.dumps({
-        "collectionName": "Main",
+        "collectionName": "MainCollection",
         "data": [{
             "docId": docId,
             "embedding": embedding,
@@ -66,6 +66,9 @@ async def store_embedding(docId, embedding, content, lastUpdated, access, title,
     # Handle the response
     if data['code'] != 0:
         logger.error(f'Failed to store embedding: {data}')
+    else:
+        logger.info(f'Stored in VectorDB')
+    return
 
 async def check_if_updated(docId, lastUpdated):
     """
@@ -75,7 +78,7 @@ async def check_if_updated(docId, lastUpdated):
     """
     
     conn = http.client.HTTPSConnection(host)
-    payload = f"{{\"collectionName\":\"Main\",\"filter\":\"docId == '{docId}'\"}}"
+    payload = f"{{\"collectionName\":\"MainCollection\",\"filter\":\"docId == '{docId}'\"}}"
     conn.request("POST", "/v2/vectordb/entities/query", payload, headers)
 
     res = conn.getresponse()
@@ -96,12 +99,14 @@ async def check_if_updated(docId, lastUpdated):
     return False
     
 
-def delete_all_entried_with_docId(docId):
+async def delete_all_entried_with_docId(docId):
     conn = http.client.HTTPSConnection(host)
 
-    payload = f"{{\"collectionName\":\"Main\",\"filter\":\"docId == '{docId}'\"}}"
+    payload = f"{{\"collectionName\":\"MainCollection\",\"filter\":\"docId == '{docId}'\"}}"
 
     conn.request("POST", "/v2/vectordb/entities/delete", payload, headers)
 
     res = conn.getresponse()
     data = res.read()
+    
+    return

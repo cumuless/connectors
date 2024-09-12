@@ -46,10 +46,10 @@ async def download_file(file_id, mime_type):
         logger.error(f"An error occurred while retrieving content: {error}")
         return None
 
-async def get_and_process_files_content(process_file_callback, max_concurrent_downloads=20):
+async def get_and_process_files_content(process_file_callback, max_concurrent_downloads=30):
     logger.info("Getting Files from Google Drive")
     results = service.files().list(
-        pageSize=2,
+        pageSize=1000,
         fields="nextPageToken, files(id, name, mimeType, createdTime, modifiedTime, webViewLink, permissions)"
     ).execute()
 
@@ -58,13 +58,13 @@ async def get_and_process_files_content(process_file_callback, max_concurrent_do
 
     while nextPageToken:
         additional_results = service.files().list(
-            pageSize=2,
+            pageSize=1000,
             fields="nextPageToken, files(id, name, mimeType, createdTime, modifiedTime, webViewLink, permissions)",
             pageToken=nextPageToken
         ).execute()
         items.extend(additional_results.get('files', []))
         logger.info(f"Found {len(items)} items")
-        if(len(items) >= 20):
+        if(len(items) >= 5000):
             break
         nextPageToken = additional_results.get('nextPageToken', None)
 

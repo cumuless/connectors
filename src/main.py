@@ -23,7 +23,7 @@ async def main():
     logger = get_logger()
     logger.info("Starting Connectors")
 
-    semaphore = asyncio.Semaphore(15)  # Limit to 10 concurrent tasks
+    semaphore = asyncio.Semaphore(30)  # Limit to 10 concurrent tasks
 
     async def process_and_store_content(content, docId, lastUpdated, access, title, webviewUrl, mime_type):
         await process_file_content(content, semaphore, docId, lastUpdated, access, title, webviewUrl, mime_type)
