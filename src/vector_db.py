@@ -17,11 +17,11 @@ headers = {
     "Accept": "application/json"
 }
 
-async def store_embedding(docId, embedding, content, lastUpdated, access, title, webviewUrl, mime_type):
+def store_embedding(docId, embedding, content, lastUpdated, access, title, webviewUrl, mime_type):
     """
     Stores the embedding for the given docId in the vector database.
     """
-    await delete_all_entried_with_docId(docId)
+    delete_all_entried_with_docId(docId)
 
     # Determine contentType based on mime_type
     contentType = 0
@@ -70,7 +70,7 @@ async def store_embedding(docId, embedding, content, lastUpdated, access, title,
         logger.info(f'Stored in VectorDB')
     return
 
-async def check_if_updated(docId, lastUpdated):
+def check_if_updated(docId, lastUpdated):
     """
     Checks if the document with the given docId has been updated.
     If updated, drops all documents with the same docId and returns True.
@@ -99,7 +99,7 @@ async def check_if_updated(docId, lastUpdated):
     return False
     
 
-async def delete_all_entried_with_docId(docId):
+def delete_all_entried_with_docId(docId):
     conn = http.client.HTTPSConnection(host)
 
     payload = f"{{\"collectionName\":\"MainCollection\",\"filter\":\"docId == '{docId}'\"}}"

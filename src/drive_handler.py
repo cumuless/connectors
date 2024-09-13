@@ -47,10 +47,11 @@ async def download_file(file_id, mime_type):
         return None
 
 async def get_and_process_files_content(process_file_callback, max_concurrent_downloads=30):
-    logger.info("Getting Files from Google Drive")
+    # logger.info("Getting Files from Google Drive")
     results = service.files().list(
-        pageSize=1000,
-        fields="nextPageToken, files(id, name, mimeType, createdTime, modifiedTime, webViewLink, permissions)"
+        pageSize=10,
+        fields="nextPageToken, files(id, name, mimeType, createdTime, modifiedTime, webViewLink, permissions)",
+        orderBy="modifiedTime desc"
     ).execute()
 
     items = results.get('files', [])
@@ -58,36 +59,44 @@ async def get_and_process_files_content(process_file_callback, max_concurrent_do
 
     while nextPageToken:
         additional_results = service.files().list(
-            pageSize=1000,
+            pageSize=10,
             fields="nextPageToken, files(id, name, mimeType, createdTime, modifiedTime, webViewLink, permissions)",
+            orderBy="modifiedTime desc",
             pageToken=nextPageToken
         ).execute()
         items.extend(additional_results.get('files', []))
-        logger.info(f"Found {len(items)} items")
-        if(len(items) >= 5000):
+        # logger.info(f"Found {len(items)} items")
+
+        if len(items) >= 20:
             break
+
         nextPageToken = additional_results.get('nextPageToken', None)
 
     semaphore = asyncio.Semaphore(max_concurrent_downloads)  # Limit concurrent downloads
 
     downloaded = 0
     skipped = 0
+    total_items = len(items)
     async def download_and_process(item):
         nonlocal downloaded, skipped
-        updated = await check_if_updated(item['id'], item['modifiedTime'])
+
+        if(downloaded + skipped == total_items):
+            return
+        
+        updated = check_if_updated(item['id'], item['modifiedTime'])
         if not updated:
             skipped += 1
-            logger.info(f"Downloaded {downloaded}, skipped {skipped} of {len(items)} items")
+            # logger.info(f"Downloaded {downloaded}, skipped {skipped} of {total_items} items")
             return
         async with semaphore:
             content = await download_file(item['id'], item['mimeType'])
             if content == None:
                 skipped += 1
-                logger.info(f"Downloaded {downloaded}, skipped {skipped} of {len(items)} items")
+                # logger.info(f"Downloaded {downloaded}, skipped {skipped} of {total_items} items")
                 return
             
             downloaded += 1
-            logger.info(f"Downloaded {downloaded}, skipped {skipped} of {len(items)} items")
+            # logger.info(f"Downloaded {downloaded}, skipped {skipped} of {total_items} items")
             
             access_list = []
             for user in item['permissions']:
@@ -96,7 +105,7 @@ async def get_and_process_files_content(process_file_callback, max_concurrent_do
                 except: 
                     pass
             if content:
-                await process_file_callback(content, item['id'], item['modifiedTime'], access_list, item['name'], item['webViewLink'], item['mimeType'])
+                process_file_callback(content, item['id'], item['modifiedTime'], access_list, item['name'], item['webViewLink'], item['mimeType'])
 
     download_tasks = [download_and_process(item) for item in items]
     await asyncio.gather(*download_tasks)

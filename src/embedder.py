@@ -9,7 +9,7 @@ def embed_text_chunks(content, chunk_size=200):
     words = content.split()
     return [' '.join(words[i:i + chunk_size]) for i in range(0, len(words), chunk_size)]
 
-async def embed_text(chunk):
+def embed_text(chunk):
     # Assuming you have a method to get AWS Bedrock client
     input_payload = json.dumps({"inputText": chunk, "dimensions": 1024})
     try:
