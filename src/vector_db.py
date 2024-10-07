@@ -45,7 +45,7 @@ def store_embedding(docId, embedding, content, lastUpdated, access, title, webvi
             "title": title,
             "content": content,
             "lastUpdated": lastUpdated,
-            "access": access,
+            # "access": access,
             "url": webviewUrl,
             "sourceType": 1,
             "contentType": contentType
