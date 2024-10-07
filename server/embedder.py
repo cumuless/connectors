@@ -1,5 +1,5 @@
 import boto3
-from logger import get_logger
+from server.logger import get_logger
 import json
 
 logger = get_logger()

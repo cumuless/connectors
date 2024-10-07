@@ -1,6 +1,6 @@
 import os
 import requests
-from logger import get_logger
+from server.logger import get_logger
 import json
 import http.client
 
@@ -11,6 +11,7 @@ ZILLIZ_API_KEY = os.getenv('ZILLIZ_API_KEY')
 url_parts = ZILLIZ_API_URL.split('/')
 host = url_parts[2]
 
+print(ZILLIZ_API_URL)
 headers = {
     "Authorization": f"Bearer {ZILLIZ_API_KEY}",
     "Content-Type": "application/json",

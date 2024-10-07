@@ -5,8 +5,8 @@ from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseDownload
 from googleapiclient.errors import HttpError
 import asyncio
-from logger import get_logger
-from vector_db import check_if_updated
+from server.logger import get_logger
+from server.vector_db import check_if_updated
 
 logger = get_logger()
 

@@ -1,9 +1,9 @@
 import asyncio
 import os
-from drive_handler import get_and_process_files_content
-from embedder import embed_text_chunks, embed_text
-from vector_db import store_embedding
-from logger import setup_logging, get_logger
+from server.drive_handler import get_and_process_files_content
+from server.embedder import embed_text_chunks, embed_text
+from server.vector_db import store_embedding
+from server.logger import setup_logging, get_logger
 
 interval = 10  # 3 minutes in seconds
 
